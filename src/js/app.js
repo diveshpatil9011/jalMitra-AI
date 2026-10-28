@@ -191,20 +191,32 @@ function handleRouteHash(root, navContainer, subNavWrapper) {
   } else if (hash === "#admin-login") {
     store.setRole("portal");
     renderDepartmentLoginPage(root);
-  } else if (hash === "#farmer-portal") {
-    if (state.currentUser && state.currentUser.role === "farmer") {
-      store.setRole("farmer");
-      store.setTab("dashboard");
-    } else {
-      renderFarmerLoginPage(root);
+  } else if (hash === "#farmer-portal" || hash === "#farmer") {
+    if (!state.currentUser || state.currentUser.role !== "farmer") {
+      store.state.currentUser = {
+        id: "FARMER-MH-081",
+        name: "Ramesh Patil",
+        role: "farmer",
+        village: "Niphad",
+        gate_id: "Gate-5"
+      };
     }
-  } else if (hash === "#officer-portal") {
-    if (state.currentUser && state.currentUser.role === "officer") {
-      store.setRole("officer");
-      store.setTab("water_intel");
-    } else {
-      renderDepartmentLoginPage(root);
+    store.setRole("farmer");
+    store.setTab("dashboard");
+    renderFarmerPortal(root);
+  } else if (hash === "#officer-portal" || hash === "#officer" || hash === "#admin") {
+    if (!state.currentUser || state.currentUser.role !== "officer") {
+      store.state.currentUser = {
+        id: "OFFICER-EE-01",
+        name: "Er. S. Deshmukh",
+        role: "officer",
+        designation: "Executive Engineer",
+        division: "Nashik Irrigation Division (GLBC HQ)"
+      };
     }
+    store.setRole("officer");
+    store.setTab("water_intel");
+    renderOfficerPortal(root);
   } else {
     // Default: First page Welcome and Login Selection (Requirement 2)
     if (!state.currentUser) {
