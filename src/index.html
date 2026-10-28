@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JalMitra (जलमित्र) - AI-Powered Agricultural Water Governance & Dispute Mediation</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+  
+  <!-- Leaflet GIS CSS & JS (Requirement 13) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Chart.js for Comparative Visualizations (Requirement 1 & 6) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Application Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper" id="brand-home-link" style="cursor: pointer;">
+        <div class="logo-badge">💧</div>
+        <div class="brand-title">
+          <span>JalMitra AI <span style="font-weight: 500; font-size: 0.95rem; color: #6ee7b7;">(जलमित्र)</span></span>
+          <span class="brand-sub" style="font-size: 0.72rem; color: #a7f3d0; font-weight: 500;">
+            जलमित्र — किसानों के लिए स्मार्ट जल प्रबंधन • "Smart Water. Fair Distribution. Stronger Farmers."
+          </span>
+        </div>
+      </div>
+
+      <!-- Controls & Persona Switcher -->
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <!-- Active User Badge (shown when authenticated) -->
+        <span id="header-farmer-display" class="badge" style="display: none; background: rgba(20, 184, 166, 0.35); color: #a7f3d0; font-size: 0.8rem; border: 1px solid rgba(20, 184, 166, 0.5); padding: 0.35rem 0.75rem;">
+          👨‍🌾 Ramesh Patil
+        </span>
+
+        <!-- Notification Bell -->
+        <button id="btn-notifs-bell" class="btn btn-secondary btn-sm" style="display: none; background: rgba(255,255,255,0.12); color: white; border-color: rgba(255,255,255,0.25); padding: 0.35rem 0.65rem; position: relative;" title="View Notifications">
+          🔔
+          <span id="notif-unread-badge" style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 0.65rem; font-weight: 800; border-radius: 50%; padding: 0.1rem 0.35rem; display: none;">
+            0
+          </span>
+        </button>
+
+        <!-- Multi-Language Selector -->
+        <select id="lang-select" class="form-select" style="width: auto; padding: 0.3rem 0.6rem; font-size: 0.8rem; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); cursor: pointer;" title="Change Language">
+          <option value="en" style="color: #0f172a;">English</option>
+          <option value="hi" style="color: #0f172a;">हिन्दी (Hindi)</option>
+          <option value="mr" style="color: #0f172a;">मराठी (Marathi)</option>
+        </select>
+
+        <!-- Public Overview Landing Page Button -->
+        <button id="btn-header-landing" class="btn btn-sm" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight: 700; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);" title="View Public Landing Page">
+          🏠 Public Overview
+        </button>
+
+        <!-- Login / Role Selection Link (shown when logged out) -->
+        <button id="btn-header-login-select" class="btn btn-teal btn-sm" style="font-size: 0.8rem; padding: 0.35rem 0.8rem; font-weight: 700;" title="Select User Persona">
+          🔑 Role Selection
+        </button>
+
+        <!-- Logout Button (shown when authenticated) -->
+        <button id="btn-header-logout" class="btn btn-sm" style="display: none; background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight: 600;">
+          🚪 Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Dynamic Navigation Bar (Visible only when logged into Farmer or Authority portal) -->
+  <nav id="sub-nav-wrapper" class="sub-navbar" style="display: none;">
+    <div id="sub-navbar-links" class="nav-links-scroll"></div>
+  </nav>
+
+  <!-- Live Demonstration Context Banner -->
+  <div id="demo-banner-wrapper" class="container" style="max-width: 1440px; margin: 0.75rem auto 0 auto; padding: 0 1.5rem; display: none;">
+    <div class="banner-notice">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span>🌾</span>
+        <span>
+          <strong>Live Command Area:</strong> Godavari Left Bank Canal (GLBC) • Rabi Rotation Cycle #4 • <strong>AI Recommends. Humans Govern.</strong>
+        </span>
+      </div>
+      <span class="demo-pill">⚙️ HACKATHON DEMO ENVIRONMENT</span>
+    </div>
+  </div>
+
+  <!-- Primary Application Root Container -->
+  <main id="app-root" class="app-main"></main>
+
+  <!-- Global Footer -->
+  <footer class="app-footer" style="background: #072317; color: #94a3b8; padding: 2rem 1.5rem 1.25rem 1.5rem; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.85rem;">
+    <div style="max-width: 1440px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem; margin-bottom: 1.5rem;">
+      <div style="max-width: 440px;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+          <div style="background: #0d9488; width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">💧</div>
+          <strong style="color: white; font-size: 1.15rem;">JalMitra AI (जलमित्र)</strong>
+        </div>
+        <div style="color: #6ee7b7; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">
+          जलमित्र — किसानों के लिए स्मार्ट जल प्रबंधन
+        </div>
+        <p style="color: #cbd5e1; line-height: 1.6; font-size: 0.85rem;">
+          Autonomous agricultural water-sharing dispute mediation and digital irrigation governance platform. Built with transparent water quotas, GIS canal mapping, Penman-Monteith crop demand estimation, and cryptographic audit logging.
+        </p>
+      </div>
+
+      <div>
+        <h4 style="color: white; font-size: 0.95rem; margin-bottom: 0.75rem;">Platform Principles</h4>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem; color: #cbd5e1; font-size: 0.85rem;">
+          <li>• "Smart Water. Fair Distribution. Stronger Farmers."</li>
+          <li>• AI Recommends. Humans Govern.</li>
+          <li>• Non-negotiable 15% Drinking Water Emergency Reserve</li>
+          <li>• Tail-Reach Farmer Parity Protection</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 style="color: white; font-size: 0.95rem; margin-bottom: 0.75rem;">Hackathon Evaluation Links</h4>
+        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.4rem; color: #cbd5e1; font-size: 0.85rem;">
+          <li>• <a href="#farmer-login" style="color: #5eead4; text-decoration: underline;">Farmer Login Page</a></li>
+          <li>• <a href="#farmer-register" style="color: #5eead4; text-decoration: underline;">Farmer Registration Page</a></li>
+          <li>• <a href="#admin-login" style="color: #93c5fd; text-decoration: underline;">Department Admin Login</a></li>
+          <li>• <a href="#role-selection" style="color: #fde047; text-decoration: underline;">Role Selection Home</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="max-width: 1440px; margin: 0 auto; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 1rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; font-size: 0.78rem; color: #64748b;">
+      <div>
+        © 2026 JalMitra AI Research Prototype. Built for Agriculture & Rural Solutions Hackathon.
+      </div>
+      <div>
+        <strong>Demonstration Notice:</strong> All canal telemetry and Gat numbers are simulated demonstration data.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Module Script -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
