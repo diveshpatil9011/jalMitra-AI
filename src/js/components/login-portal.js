@@ -466,10 +466,50 @@ export function renderFarmerRegisterPage(container) {
     }
 
     try {
-      const resp = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let regSuccess = false;
+      let regUser = null;
+      let regFarmer = null;
+
+      try {
+        const resp = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            farmer_id: fid,
+            name,
+            mobile,
+            gat_no: gat,
+            village,
+            district,
+            state,
+            farm_area_acres: area,
+            crop,
+            season: "Rabi",
+            gate_id: gate,
+            password: pass
+          })
+        });
+
+        const res = await resp.json();
+        if (resp.ok && res.success) {
+          regUser = res.user;
+          regFarmer = res.farmer;
+          regSuccess = true;
+        } else if (res.error) {
+          if (alertBox) {
+            alertBox.style.display = "block";
+            alertBox.style.background = "#fef2f2";
+            alertBox.style.color = "#991b1b";
+            alertBox.textContent = res.error;
+          }
+          return;
+        }
+      } catch (netErr) {
+        console.warn("Backend registration fetch unreachable, falling back to local store:", netErr);
+      }
+
+      if (!regSuccess) {
+        const localRes = await store.registerFarmer({
           farmer_id: fid,
           name,
           mobile,
@@ -482,27 +522,23 @@ export function renderFarmerRegisterPage(container) {
           season: "Rabi",
           gate_id: gate,
           password: pass
-        })
-      });
-
-      const res = await resp.json();
-      if (!resp.ok || !res.success) {
-        if (alertBox) {
-          alertBox.style.display = "block";
-          alertBox.style.background = "#fef2f2";
-          alertBox.style.color = "#991b1b";
-          alertBox.textContent = res.error || "Registration failed. Mobile may already be registered.";
+        });
+        if (localRes && localRes.success) {
+          regUser = localRes.user;
+          regFarmer = localRes.farmer;
+          regSuccess = true;
         }
-        return;
       }
 
-      // Success: Log in new farmer
-      store.loginUser(res.user);
-      store.setRole("farmer");
-      store.setActiveFarmer(res.farmer ? res.farmer.id : res.user.id);
+      if (regSuccess && regUser) {
+        store.loginUser(regUser);
+        store.setRole("farmer");
+        store.setActiveFarmer(regFarmer ? regFarmer.id : regUser.id);
+        window.location.hash = "farmer-portal";
 
-      if (window.showToast) {
-        window.showToast(`Welcome ${name}! Your assigned Farmer ID is ${res.user.id}.`, "success");
+        if (window.showToast) {
+          window.showToast(`Welcome ${name}! Your assigned Farmer ID is ${regUser.id}.`, "success");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -510,7 +546,7 @@ export function renderFarmerRegisterPage(container) {
         alertBox.style.display = "block";
         alertBox.style.background = "#fef2f2";
         alertBox.style.color = "#991b1b";
-        alertBox.textContent = "Network error communicating with server.";
+        alertBox.textContent = "Error completing registration: " + (err.message || "Please check inputs.");
       }
     }
   });
@@ -640,25 +676,61 @@ async function executeLogin(identifier, password, requiredRole, container) {
   const alertBox = container.querySelector(alertId) || container.querySelector("#farmer-login-alert") || container.querySelector("#admin-login-alert");
 
   try {
-    const resp = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password, role: requiredRole })
-    });
+    let user = null;
+    let authSucceeded = false;
 
-    const res = await resp.json();
+    // 1. Attempt REST API backend authentication first
+    try {
+      const resp = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password, role: requiredRole })
+      });
 
-    if (!resp.ok || !res.success) {
-      if (alertBox) {
-        alertBox.style.display = "block";
-        alertBox.style.background = "#fef2f2";
-        alertBox.style.color = "#991b1b";
-        alertBox.textContent = res.error || "Authentication failed. Check your credentials.";
+      if (resp.ok) {
+        const res = await resp.json();
+        if (res.success && res.user) {
+          user = res.user;
+          authSucceeded = true;
+        } else if (res.error) {
+          if (alertBox) {
+            alertBox.style.display = "block";
+            alertBox.style.background = "#fef2f2";
+            alertBox.style.color = "#991b1b";
+            alertBox.textContent = res.error;
+          }
+          return;
+        }
+      } else if (resp.status === 401) {
+        const res = await resp.json().catch(() => ({}));
+        if (alertBox) {
+          alertBox.style.display = "block";
+          alertBox.style.background = "#fef2f2";
+          alertBox.style.color = "#991b1b";
+          alertBox.textContent = res.error || "Invalid credentials. For demo, use 'kisan123' for farmers or 'admin123' for officers.";
+        }
+        return;
       }
-      return;
+    } catch (networkErr) {
+      console.warn("Backend fetch failed, utilizing responsive offline fallback:", networkErr);
     }
 
-    const user = res.user;
+    // 2. Resilient local fallback if server unreachable, offline, or accessed via file://
+    if (!authSucceeded) {
+      const localRes = await store.login(identifier, password, requiredRole);
+      if (localRes && localRes.success && localRes.user) {
+        user = localRes.user;
+        authSucceeded = true;
+      } else {
+        if (alertBox) {
+          alertBox.style.display = "block";
+          alertBox.style.background = "#fef2f2";
+          alertBox.style.color = "#991b1b";
+          alertBox.textContent = (localRes && localRes.error) ? localRes.error : "Invalid credentials. Please verify identifier and password.";
+        }
+        return;
+      }
+    }
 
     // Strict Role Enforcement
     if (requiredRole && user.role !== requiredRole) {
@@ -691,12 +763,12 @@ async function executeLogin(identifier, password, requiredRole, container) {
       window.showToast(`Welcome back, ${user.name}!`, "success");
     }
   } catch (err) {
-    console.error(err);
+    console.error("Login process error:", err);
     if (alertBox) {
       alertBox.style.display = "block";
       alertBox.style.background = "#fef2f2";
       alertBox.style.color = "#991b1b";
-      alertBox.textContent = "Server communication error. Please check backend connection.";
+      alertBox.textContent = "Authentication notice: " + (err.message || "Please verify credentials.");
     }
   }
 }

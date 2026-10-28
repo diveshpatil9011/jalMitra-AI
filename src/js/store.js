@@ -143,6 +143,19 @@ export const INITIAL_STATE = {
       division: "Pimpalgaon Irrigation Sub-Division",
       station: "Pimpalgaon Baswant",
       jurisdiction: "Middle & Tail Reach (Gate 3 - Gate 6)"
+    },
+    {
+      id: "OFFICER-ADMIN-ROOT",
+      username: "admin",
+      email: "admin@jalmitra.gov.in",
+      mobile: "9800000000",
+      password: "admin123",
+      role: "officer",
+      name: "Department Administrator",
+      designation: "Chief Administrator",
+      division: "Irrigation Command Headquarter",
+      station: "Nashik Head Office",
+      jurisdiction: "All Canal Commands"
     }
   ],
   
@@ -1013,6 +1026,26 @@ class Store {
 
   setFarmer(farmerId) {
     this.state.activeFarmerId = farmerId;
+    this.notify();
+  }
+
+  setActiveFarmer(farmerId) {
+    this.setFarmer(farmerId);
+  }
+
+  loginUser(user) {
+    if (!user) return;
+    this.state.currentUser = user;
+    if (user.role === "farmer") {
+      this.state.activeRole = "farmer";
+      this.state.activeFarmerId = user.id;
+      this.state.activeTab = "dashboard";
+      this.state.activeFarmerSubTab = "dashboard";
+    } else if (user.role === "officer") {
+      this.state.activeRole = "officer";
+      this.state.activeTab = "water_intel";
+      this.state.activeOfficerSubTab = "water_intel";
+    }
     this.notify();
   }
 
